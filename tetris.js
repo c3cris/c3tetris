@@ -29,7 +29,9 @@ var rndSeed = 1;
       //if its not empty
       if (object.shape[row][col] !== 0) {
         //if it collides, return true
-        if (scene[object.y + row] === undefined || scene[object.y + row][object.x + col] === undefined || scene[object.y + row][object.x + col] !== 0) {
+        if (scene[object.y + row] === undefined 
+          || scene[object.y + row][object.x + col] === undefined 
+          || scene[object.y + row][object.x + col] !== 0) {
           return true;
         }
       }
@@ -90,6 +92,18 @@ function transpose(array){
   });
   return newArray;
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -189,6 +203,7 @@ Game.prototype.collision = function(x, y) {
 Game.prototype.nextShape = function(t) {
   this.shape = new Shape(t);
   this.shape.x = Math.floor(this.width / 2);
+  this.addShape();
 };
 
 Game.prototype.draw = function(){
