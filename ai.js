@@ -19,5 +19,22 @@ Ai.prototype.getHeight = function(game) {
     }
     game.applyShape();
     return 20 - Math.min.apply(Math, peaks);
-   }
+   };
 
+
+
+function randomNumBetween(min, max) {
+  return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+function randomWeightedNumBetween(min, max) {
+  return Math.floor(Math.pow(Math.random(), 2) * (max - min + 1) + min);
+}
+
+function randomChoice(propOne, propTwo) {
+  if (Math.round(Math.random()) === 0) {
+    return clone(propOne);
+  } else {
+    return clone(propTwo);
+  }
+}
