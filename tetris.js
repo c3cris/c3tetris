@@ -10,7 +10,6 @@ function clone(obj) {
 }
 
 
-
 /**
  * Game
  */
@@ -41,27 +40,27 @@ function Game(w, h, game, steps) {
   //Block colors
   this.colors = ["CBCBCB", "F92338", "A733F9", "1C76BC", "FEE356", "53D504", "36E0FF", "F8931D", "EB13E6", "FFFFFF"];
   this.shapes = {
-    I: [[0,0,0,0],
-      [1,1,1,1],
-      [0,0,0,0],
-      [0,0,0,0]],
-    J: [[2,0,0],
-      [2,2,2],
-      [0,0,0]],
-    L: [[0,0,3],
-      [3,3,3],
-      [0,0,0]],
-    O: [[4,4],
-      [4,4]],
-    S: [[0,5,5],
-      [5,5,0],
-      [0,0,0]],
-    T: [[0,6,0],
-      [6,6,6],
-      [0,0,0]],
-    Z: [[7,7,0],
-      [0,7,7],
-      [0,0,0]],
+    I: [[0, 0, 0, 0],
+        [1, 1, 1, 1],
+        [0, 0, 0, 0],
+        [0, 0, 0, 0]],
+    J: [[2, 0, 0],
+        [2, 2, 2],
+        [0, 0, 0]],
+    L: [[0, 0, 3],
+        [3, 3, 3],
+        [0, 0, 0]],
+    O: [[4, 4],
+        [4, 4]],
+    S: [[0, 5, 5],
+        [5, 5, 0],
+        [0, 0, 0]],
+    T: [[0, 6, 0],
+        [6, 6, 6],
+        [0, 0, 0]],
+    Z: [[7, 7, 0],
+        [0, 7, 7],
+        [0, 0, 0]],
     // X: [[1,2,3],
     //   [4,5,6],
     //   [7,8,9]]
@@ -97,19 +96,10 @@ Game.prototype.reset = function () {
   }
 };
 
-Game.prototype.step = function () {
-
-  if (!this.checkState()) return false;
-  if (!this.shape) return this.nextShape();
-
-  this.gravity();
-
-
-};
 
 Game.prototype.checkState = function () {
   if (this.state === 1) {
-    this.reset();
+    if (!this.ai) this.reset();
     return false;
   }
   return true;
@@ -268,22 +258,30 @@ Game.prototype.draw = function () {
     this.domStatus.innerHTML = "Running";
   }
 
-  var shapesHtml = "";
-  var shapes = this.predictShapes(5);
-  for (shape in shapes) {
-    shapesHtml += "<tr><td>" + shapes[shape] + "</td></tr>";
-  }
-  lineup = "<table>" + shapesHtml + "</table>";
+
+  var shapes = this.predictShapes(7);
+
 
   this.domStats.innerHTML = "<table>\
   <tr><td>Name</td><td>Value</td></tr>\
   <tr><td>Score</td><td>" + this.score + "</td></tr>\
+  <tr><td>AI</td><td>" + this.ai + "</td></tr>\
   <tr><td>Status</td><td>" + this.state + "</td></tr>\
   <tr><td>Steps</td><td>" + this.steps + "</td></tr>\
   <tr><td>Shape</td><td>" + JSON.stringify(this.shape) + "</td></tr>\
-  </table>" + lineup;
+  <tr><td>Line UP</td><td>" + JSON.stringify(shapes) + "</td></tr>\
+  </table>";
 
-  var debug = "<table  class=\"monospace\"><tr><td><div>";
+  var debug = this.boardDebug();
+  this.domStats.innerHTML += debug;
+
+
+};
+
+Game.prototype.boardDebug = function () {
+
+  debug = "<table  class=\"monospace\"><tr><td><div>";
+
   for (var y = 0; y < this.height; y++) {
     for (var x = 0; x < this.width; x++) {
       debug += "<span style=\"color:#" + this.colors[this.board[y][x]] + "\">" + this.board[y][x] + "</span>";
@@ -291,7 +289,6 @@ Game.prototype.draw = function () {
     debug += "<br>";
   }
   debug += "</div></td>";
-
 
   if (this.save !== 0) {
 
@@ -305,12 +302,21 @@ Game.prototype.draw = function () {
     }
     debug += "</div></td>";
 
-  }else {
+  } else {
 
     debug += "<td>No Save";
   }
   debug += "</td></tr></table>";
-  this.domStats.innerHTML += debug;
+
+  return debug;
+};
+
+Game.prototype.step = function () {
+
+  if (!this.checkState()) return false;
+  if (!this.shape) return this.nextShape();
+
+  this.gravity();
 
 
 };
@@ -515,10 +521,10 @@ window.onkeydown = function (event) {
     game.ai = !game.ai;
   } else if (characterPressed.toUpperCase() === "F") {
 
-    if(game.pressed) return;
+    if (game.pressed) return;
     game.pressed = true;
     game.saveState();
-    setTimeout(function(){
+    setTimeout(function () {
       game.pressed = false;
       console.log("pressed false");
     }, 1100);
