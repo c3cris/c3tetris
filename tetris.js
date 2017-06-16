@@ -1,6 +1,13 @@
 /**
 
  Todo - add call to bot ( abstract )
+ Todo - Add evolve
+ Todo - Add charting
+ Todo - Create manual entry
+ Todo - Add new inputs
+ Todo - Create custom board inputs for testing algo
+ Todo - refactor drawing for speed up
+ Todo - refactor UI
 
  **/
 
@@ -384,9 +391,9 @@ Game.prototype.getState = function () {
 Game.prototype.saveState = function () {
 
   this.removeShape();
-  this.save = this.getState();
+  var save = this.getState();
   this.addShape();
-  return this.save;
+  return save;
 };
 
 /**
@@ -492,7 +499,7 @@ Game.prototype.draw = function () {
   html = "<div style='float:left;width:550px;'><table>\
   <tr><td>Name</td><td>Value</td></tr>\
   <tr><td>Score</td><td>" + this.score + "</td></tr>\
-  <tr><td>Current Genome</td><td>" + this.ai.index + "/" + this.ai.genomes.length + "</td></tr>\
+  <tr><td>Current Genome</td><td>" + (this.ai.index + 1 ) + "/" + this.ai.genomes.length + "</td></tr>\
   <tr><td>AI</td><td>" + this.aiFlag + "</td></tr>\
   <tr><td>Status</td><td>" + this.state + "</td></tr>\
   <tr><td>Steps</td><td>" + this.steps + "</td></tr>\
@@ -561,13 +568,13 @@ Game.prototype.boardDebug = function () {
   }
   debug += "</div></td>";
 
-  if (this.save !== 0) {
+  if (this.ai.testState !== 0) {
 
     debug += "<td><div>";
 
     for (var y = 0; y < this.height; y++) {
       for (var x = 0; x < this.width; x++) {
-        debug += "<span style=\"color:#" + this.colors[this.save.board[y][x]] + "\">" + this.save.board[y][x] + "</span>";
+        debug += "<span style=\"color:#" + this.colors[this.ai.testState.board[y][x]] + "\">" + this.ai.testState.board[y][x] + "</span>";
       }
       debug += "<br>";
     }

@@ -4,7 +4,7 @@ function Ai(game, population) {
   this.population = population;
   this.index = -1;
   this.movesTaken = 0;
-  this.testState = [];
+  this.testState = 0;
   this.moveLimit = 200;
   this.genomeQ = [];
   this.action = false;
@@ -239,7 +239,7 @@ Ai.prototype.getHighestRatedMove = function (moves) {
       maxMove = index;
       //store index of this move
       ties = [index];
-    } else if (moves[index].rating == maxRating) {
+    } else if (moves[index].rating === maxRating) {
       //if it ties with the max rating
       //add the index to the ties array
       ties.push(index);
