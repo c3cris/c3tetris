@@ -7,6 +7,7 @@ function Ai(game, population) {
   this.testState = [];
   this.moveLimit = 200;
   this.genomeQ = [];
+  this.action = false;
 }
 
 
@@ -48,15 +49,18 @@ Ai.prototype.init = function () {
 Ai.prototype.nextGenome = function () {
   //increment index in genome array
 
-  if(this.genomes.length === 0) return;
+  if (this.genomes.length === 0) return;
 
   if (this.index >= 0) {
     this.genomes[this.index].fitness = this.game.score;
   }
   this.index++;
+
   //If there is none, evolves the population.
   if (this.index === this.genomes.length) {
-    this.evolve();
+    // this.evolve();
+    this.index = 0;
+    console.log("done");
   }
   //load current game state
   this.game.loadState(this.testState);
@@ -71,8 +75,11 @@ Ai.prototype.nextGenome = function () {
  */
 Ai.prototype.makeNextMove = function () {
 
-  if(this.genomes.length === 0) return;
-  
+
+  if (this.action !== false) return this.solveAction();
+
+  if (this.genomes.length === 0) return;
+
 
   //increment number of moves taken
   this.movesTaken++;
@@ -250,6 +257,25 @@ Ai.prototype.getAiData = function () {
   return this.move;
 };
 
+Ai.prototype.solveAction = function () {
+
+
+  if (this.action === "add") {
+    this.genomes = this.genomes.concat(this.genomeQ);
+    this.index = -1;
+    this.genomeQ = [];
+    this.clearAction();
+    return this.nextGenome();
+  } else if (this.action == "delete") {
+    this.index = -1;
+    this.genomes = [];
+  }
+
+};
+
+Ai.prototype.clearAction = function () {
+  this.action = false;
+};
 
 function randomNumBetween(min, max) {
   return Math.floor(Math.random() * (max - min + 1) + min);
@@ -299,8 +325,6 @@ function randomChoice(propOne, propTwo) {
  * Returns the roughness of the grid.
  * @return {Number} The roughness of the grid.
  */
-
-
 
 
 /**

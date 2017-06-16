@@ -17,7 +17,6 @@ function clone(obj) {
 var game = new Game(10, 20, "game", 500);
 
 
-
 /**
  * Game
  */
@@ -45,26 +44,26 @@ function Game(w, h, game, steps) {
   this.colors = ["CBCBCB", "F92338", "A733F9", "1C76BC", "FEE356", "53D504", "36E0FF", "F8931D", "EB13E6", "FFFFFF"];
   this.shapes = {
     I: [[0, 0, 0, 0],
-        [1, 1, 1, 1],
-        [0, 0, 0, 0],
-        [0, 0, 0, 0]],
+      [1, 1, 1, 1],
+      [0, 0, 0, 0],
+      [0, 0, 0, 0]],
     J: [[2, 0, 0],
-        [2, 2, 2],
-        [0, 0, 0]],
+      [2, 2, 2],
+      [0, 0, 0]],
     L: [[0, 0, 3],
-        [3, 3, 3],
-        [0, 0, 0]],
+      [3, 3, 3],
+      [0, 0, 0]],
     O: [[4, 4],
-        [4, 4]],
+      [4, 4]],
     S: [[0, 5, 5],
-        [5, 5, 0],
-        [0, 0, 0]],
+      [5, 5, 0],
+      [0, 0, 0]],
     T: [[0, 6, 0],
-        [6, 6, 6],
-        [0, 0, 0]],
+      [6, 6, 6],
+      [0, 0, 0]],
     Z: [[7, 7, 0],
-        [0, 7, 7],
-        [0, 0, 0]],
+      [0, 7, 7],
+      [0, 0, 0]],
     // X: [[1,2,3],
     //   [4,5,6],
     //   [7,8,9]]
@@ -92,7 +91,6 @@ Game.prototype.start = function () {
   });
 
 };
-
 
 
 Game.prototype.reset = function () {
@@ -128,7 +126,7 @@ Game.prototype.gravity = function () {
       this.ai.nextGenome();
     }
   }
-  if(!result.moved){
+  if (!result.moved) {
     if (this.aiFlag) this.ai.makeNextMove();
   }
 };
@@ -149,8 +147,7 @@ Game.prototype.moveDown = function () {
     //get rows eliminated
     result.rows = this.clearRows();
 
-    if(this.nextShape() === false)
-    {
+    if (this.nextShape() === false) {
       result.lose = true;
     }
 
@@ -274,134 +271,10 @@ Game.prototype.getShape = function (t) {
   return this.shapes[t]
 };
 
-Game.prototype.draw = function () {
-
-  var html = "";
-
-  // Draw Board
-  for (var y = 0; y < this.height; y++) {
-    for (var x = 0; x < this.width; x++) {
-      html += "<span style=\"color:#" + this.colors[this.board[y][x]] + "\">&#9632;</span>";
-    }
-    html += "<br>";
-  }
-  this.dom.innerHTML = html;
-
-  if (this.state) {
-    this.domStatus.innerHTML = "Lost";
-  } else {
-    this.domStatus.innerHTML = "Running";
-  }
-
-  // Get upcoming shapes
-  var shapes = this.predictShapes(7);
-
-  html = "<div style='float:left;width:550px;'><table>\
-  <tr><td>Name</td><td>Value</td></tr>\
-  <tr><td>Score</td><td>" + this.score + "</td></tr>\
-  <tr><td>Current Genome</td><td>" + this.ai.index + "/" + this.ai.population + "</td></tr>\
-  <tr><td>AI</td><td>" + this.aiFlag + "</td></tr>\
-  <tr><td>Status</td><td>" + this.state + "</td></tr>\
-  <tr><td>Steps</td><td>" + this.steps + "</td></tr>\
-  <tr><td>Shape</td><td>" + JSON.stringify(this.shape) + "</td></tr>\
-  <tr><td>Line UP</td><td>" + JSON.stringify(shapes) + "</td></tr>\
-  </table>";
-
-  var debug = this.boardDebug();
-
-  aidata = this.ai.getAiData();
-
-  statsHtml = "";
-
-  stats = this.getBoardStats();
-
-  for(var stat in stats){
-    statsHtml += stat + " : " + stats[stat] + " <br> ";
-  }
-
-  aiHtml = "";
-  for (var aiinfo in aidata) {
-    if (aiinfo === "algorithm") {
-      aiHtml += "_____Algorithm______<br>";
-
-      for (var algo in aidata[aiinfo]) {
-        aiHtml += algo + " : " + aidata[aiinfo][algo] + " <br> ";
-      }
-      continue;
-    }
-    aiHtml += aiinfo + " : " + aidata[aiinfo] + " <br> ";
-  }
-  genomeHtml = "";
-  for (var gene in this.ai.genomes[this.ai.index]) {
-    genomeHtml += gene + " : " + this.ai.genomes[this.ai.index][gene] + " <br> ";
-  }
-
-
-  genomeHtml += "<pre>" + JSON.stringify(this.ai.genomes, false, 2) + "</pre>";
-
-  html += debug + "<div>" + statsHtml + "</div> </div><div style='float:right;'>" + genomeHtml + "</div> <div style=\"width:300px;\">" + aiHtml + " </div>";
-  this.domAi.innerHTML = html;
-
-//   debug = "";
-//   for(var shape in this.shapes) {
-//     for (var y = 0; y < this.shapes[shape].length; y++) {
-//       for (var x = 0; x < this.shapes[shape][y].length; x++) {
-//         debug += "<span style=\"color:#" + this.colors[this.shapes[shape][y][x]] + "\">&#9632;</span>";
-//       }
-//       debug += "<br>";
-//     }
-//     debug += "<br>";
-//   }
-//
-//   this.domStats.innerHTML += "<div>" + debug + "</div>";
-};
-
-Game.prototype.boardDebug = function () {
-
-  debug = "<table  class=\"monospace\"><tr><td><div>";
-
-  for (var y = 0; y < this.height; y++) {
-    for (var x = 0; x < this.width; x++) {
-      debug += "<span style=\"color:#" + this.colors[this.board[y][x]] + "\">" + this.board[y][x] + "</span>";
-    }
-    debug += "<br>";
-  }
-  debug += "</div></td>";
-
-  if (this.save !== 0) {
-
-    debug += "<td><div>";
-
-    for (var y = 0; y < this.height; y++) {
-      for (var x = 0; x < this.width; x++) {
-        debug += "<span style=\"color:#" + this.colors[this.save.board[y][x]] + "\">" + this.save.board[y][x] + "</span>";
-      }
-      debug += "<br>";
-    }
-    debug += "</div></td>";
-
-  } else {
-
-    debug += "<td>No Save</td>";
-  }
-  debug += "</tr></table>";
-
-  return debug;
-};
-
-Game.prototype.step = function () {
-
-  if (!this.checkState()) return false;
-  if (!this.shape) return this.nextShape();
-
-  this.gravity();
-
-
-};
 
 Game.prototype.removeShape = function () {
 
-  if ( this.shape === 0) return;
+  if (this.shape === 0) return;
 
   for (var row = 0; row < this.shape.shape.length; row++) {
     for (var col = 0; col < this.shape.shape[row].length; col++) {
@@ -414,7 +287,7 @@ Game.prototype.removeShape = function () {
 
 Game.prototype.addShape = function () {
 
-  if ( this.shape === 0) return;
+  if (this.shape === 0) return;
 
   for (var row = 0; row < this.shape.shape.length; row++) {
     for (var col = 0; col < this.shape.shape[row].length; col++) {
@@ -537,18 +410,18 @@ Game.prototype.loadState = function (state) {
  */
 
 
-Game.prototype.getBoardStats = function() {
+Game.prototype.getBoardStats = function () {
 
   this.removeShape();
   var grid = this.board;
   var stats = {};
 
 
-  stats.peaks = [20,20,20,20,20,20,20,20,20,20];
+  stats.peaks = [20, 20, 20, 20, 20, 20, 20, 20, 20, 20];
   for (var row = 0; row < grid.length; row++) {
     for (var col = 0; col < grid[row].length; col++) {
 
-      if(stats.peaks[col] !== 20) break;
+      if (stats.peaks[col] !== 20) break;
 
       if (grid[row][col] !== 0) {
         stats.peaks[col] = row;
@@ -557,10 +430,10 @@ Game.prototype.getBoardStats = function() {
   }
 
   // Height
-  stats.height =  20 - Math.min.apply(Math, stats.peaks);
+  stats.height = 20 - Math.min.apply(Math, stats.peaks);
 
   // Relative Height
-  stats.relativeHeight =  Math.max.apply(Math, stats.peaks) - Math.min.apply(Math, stats.peaks);
+  stats.relativeHeight = Math.max.apply(Math, stats.peaks) - Math.min.apply(Math, stats.peaks);
 
   // Roughness
   stats.roughness = 0;
@@ -594,6 +467,130 @@ Game.prototype.getBoardStats = function() {
   return stats;
 };
 
+Game.prototype.draw = function () {
+
+  var html = "";
+
+  // Draw Board
+  for (var y = 0; y < this.height; y++) {
+    for (var x = 0; x < this.width; x++) {
+      html += "<span style=\"color:#" + this.colors[this.board[y][x]] + "\">&#9632;</span>";
+    }
+    html += "<br>";
+  }
+  this.dom.innerHTML = html;
+
+  if (this.state) {
+    this.domStatus.innerHTML = "Lost";
+  } else {
+    this.domStatus.innerHTML = "Running";
+  }
+
+  // Get upcoming shapes
+  var shapes = this.predictShapes(7);
+
+  html = "<div style='float:left;width:550px;'><table>\
+  <tr><td>Name</td><td>Value</td></tr>\
+  <tr><td>Score</td><td>" + this.score + "</td></tr>\
+  <tr><td>Current Genome</td><td>" + this.ai.index + "/" + this.ai.genomes.length + "</td></tr>\
+  <tr><td>AI</td><td>" + this.aiFlag + "</td></tr>\
+  <tr><td>Status</td><td>" + this.state + "</td></tr>\
+  <tr><td>Steps</td><td>" + this.steps + "</td></tr>\
+  <tr><td>Shape</td><td>" + JSON.stringify(this.shape) + "</td></tr>\
+  <tr><td>Line UP</td><td>" + JSON.stringify(shapes) + "</td></tr>\
+  </table>";
+
+  var debug = this.boardDebug();
+
+  aidata = this.ai.getAiData();
+
+  statsHtml = "";
+
+  stats = this.getBoardStats();
+
+  for (var stat in stats) {
+    statsHtml += stat + " : " + stats[stat] + " <br> ";
+  }
+
+  aiHtml = "";
+  for (var aiinfo in aidata) {
+    if (aiinfo === "algorithm") {
+      aiHtml += "_____Algorithm______<br>";
+
+      for (var algo in aidata[aiinfo]) {
+        aiHtml += algo + " : " + aidata[aiinfo][algo] + " <br> ";
+      }
+      continue;
+    }
+    aiHtml += aiinfo + " : " + aidata[aiinfo] + " <br> ";
+  }
+  genomeHtml = "";
+  for (var gene in this.ai.genomes[this.ai.index]) {
+    genomeHtml += gene + " : " + this.ai.genomes[this.ai.index][gene] + " <br> ";
+  }
+
+
+  genomeHtml += "<pre>" + JSON.stringify(this.ai.genomes, false, 2) + "</pre>";
+
+  html += debug + "<div>" + statsHtml + "</div> </div><div style='float:right;'>" + genomeHtml + "</div> <div style=\"width:300px;\">" + aiHtml + " </div>";
+  this.domAi.innerHTML = html;
+
+//   debug = "";
+//   for(var shape in this.shapes) {
+//     for (var y = 0; y < this.shapes[shape].length; y++) {
+//       for (var x = 0; x < this.shapes[shape][y].length; x++) {
+//         debug += "<span style=\"color:#" + this.colors[this.shapes[shape][y][x]] + "\">&#9632;</span>";
+//       }
+//       debug += "<br>";
+//     }
+//     debug += "<br>";
+//   }
+//
+//   this.domStats.innerHTML += "<div>" + debug + "</div>";
+};
+
+Game.prototype.boardDebug = function () {
+
+  debug = "<table  class=\"monospace\"><tr><td><div>";
+
+  for (var y = 0; y < this.height; y++) {
+    for (var x = 0; x < this.width; x++) {
+      debug += "<span style=\"color:#" + this.colors[this.board[y][x]] + "\">" + this.board[y][x] + "</span>";
+    }
+    debug += "<br>";
+  }
+  debug += "</div></td>";
+
+  if (this.save !== 0) {
+
+    debug += "<td><div>";
+
+    for (var y = 0; y < this.height; y++) {
+      for (var x = 0; x < this.width; x++) {
+        debug += "<span style=\"color:#" + this.colors[this.save.board[y][x]] + "\">" + this.save.board[y][x] + "</span>";
+      }
+      debug += "<br>";
+    }
+    debug += "</div></td>";
+
+  } else {
+
+    debug += "<td>No Save</td>";
+  }
+  debug += "</tr></table>";
+
+  return debug;
+};
+
+Game.prototype.step = function () {
+
+  if (!this.checkState()) return false;
+  if (!this.shape) return this.nextShape();
+
+  this.gravity();
+
+
+};
 
 
 /**
@@ -607,9 +604,6 @@ Game.prototype.loop = function (t) {
   t.interval = setTimeout(t.loop, t.steps, t)
 
 };
-
-
-
 
 
 /**
