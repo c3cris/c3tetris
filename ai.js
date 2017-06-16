@@ -1,86 +1,20 @@
-
-
-function Ai(){
-
+function Ai(game, population) {
+  this.game = game;
+  this.genomes = [];
+  this.population = population;
+  this.index = -1;
+  this.movesTaken = 0;
+  this.testState = [];
+  this.moveLimit = 200;
+  this.genomeQ = [];
 }
 
 
-Ai.prototype.getHeight = function(game) {
-    game.removeShape();
-    var peaks = [20,20,20,20,20,20,20,20,20,20];
-    
-    for (var row = 0; row < game.board.length; row++) {
-      for (var col = 0; col < game.board[row].length; col++) {
+Ai.prototype.init = function () {
 
-        if (game.board[row][col] !== 0 && peaks[col] === 20) {
-          peaks[col] = row;
-        }
-      }
-    }
-    game.applyShape();
-    return 20 - Math.min.apply(Math, peaks);
-   };
-
-
-
-function randomNumBetween(min, max) {
-  return Math.floor(Math.random() * (max - min + 1) + min);
-}
-
-function randomWeightedNumBetween(min, max) {
-  return Math.floor(Math.pow(Math.random(), 2) * (max - min + 1) + min);
-}
-
-function randomChoice(propOne, propTwo) {
-  if (Math.round(Math.random()) === 0) {
-    return clone(propOne);
-  } else {
-    return clone(propTwo);
-  }
-}
-
-
-/**
- * Updates the game.
- */
-function update() {
-  //if we have our AI turned on and the current genome is nonzero
-  //make a move
-  if (ai && currentGenome != -1) {
-    //move the shape down
-    var results = moveDown();
-    //if that didn't do anything
-    if (!results.moved) {
-      //if we lost
-      if (results.lose) {
-        //update the fitness
-        genomes[currentGenome].fitness = clone(score);
-        //move on to the next genome
-        evaluateNextGenome();
-      } else {
-        //if we didnt lose, make the next move
-        makeNextMove();
-      }
-    }
-  } else {
-    //else just move down
-    moveDown();
-  }
-  //output the state to the screen
-  output();
-  //and update the score
-  updateScore();
-}
-
-
-/**
- * Creates the initial population of genomes, each with random genes.
- */
-function createInitialPopulation() {
-  //inits the array
-  genomes = [];
+  this.testState = this.game.saveState();
   //for a given population size
-  for (var i = 0; i < populationSize; i++) {
+  for (var i = 0; i < this.population; i++) {
     //randomly initialize the 7 values that make up a genome
     //these are all weight values that are updated through evolution
     var genome = {
@@ -102,28 +36,272 @@ function createInitialPopulation() {
       roughness: Math.random() - 0.5,
     };
     //add them to the array
-    genomes.push(genome);
+    this.genomes.push(genome);
   }
-  evaluateNextGenome();
-}
+  this.nextGenome();
+};
+
 
 /**
  * Evaluates the next genome in the population. If there is none, evolves the population.
  */
-function evaluateNextGenome() {
+Ai.prototype.nextGenome = function () {
   //increment index in genome array
-  currentGenome++;
-  //If there is none, evolves the population.
-  if (currentGenome == genomes.length) {
-    evolve();
+
+  if(this.genomes.length === 0) return;
+
+  if (this.index >= 0) {
+    this.genomes[this.index].fitness = this.game.score;
   }
-  //load current gamestate
-  loadState(roundState);
+  this.index++;
+  //If there is none, evolves the population.
+  if (this.index === this.genomes.length) {
+    this.evolve();
+  }
+  //load current game state
+  this.game.loadState(this.testState);
   //reset moves taken
-  movesTaken = 0;
+  this.movesTaken = 0;
   //and make the next move
-  makeNextMove();
+  this.makeNextMove();
+};
+
+/**
+ * Makes a move, which is decided upon using the parameters in the current genome.
+ */
+Ai.prototype.makeNextMove = function () {
+
+  if(this.genomes.length === 0) return;
+  
+
+  //increment number of moves taken
+  this.movesTaken++;
+  //if its over the limit of moves
+  if (this.movesTaken > this.moveLimit) {
+    //update this genomes fitness value using the game score
+    this.genomes[this.index].fitness = clone(this.game.score);
+    //and evaluates the next g
+    // genome
+    this.nextGenome();
+
+  } else {
+    //time to make a move
+
+    //get all the possible moves
+    var possibleMoves = this.getAllPossibleMoves();
+    //lets store the current state since we will update it
+
+    //var lastState = this.game.saveState();
+    //whats the next shape to play
+    this.game.removeShape();
+    this.game.nextShape();
+
+    //for each possible move
+    for (var i = 0; i < possibleMoves.length; i++) {
+      //get the best move. so were checking all the possible moves, for each possible move. moveception.
+      var nextMove = this.getHighestRatedMove(this.getAllPossibleMoves());
+      //add that rating to an array of highest rates moves
+      possibleMoves[i].rating += nextMove.rating;
+    }
+
+    //load current state
+    // this.game.loadState(lastState);
+
+    //get the highest rated move ever
+    this.move = this.getHighestRatedMove(possibleMoves);
+    //then rotate the shape as it says too
+    for (var rotations = 0; rotations < this.move.rotations; rotations++) {
+      this.game.rotateShape();
+    }
+    //and move left as it says
+    if (this.move.translation < 0) {
+      for (var lefts = 0; lefts < Math.abs(this.move.translation); lefts++) {
+        this.game.moveLeft();
+      }
+      //and right as it says
+    } else if (this.move.translation > 0) {
+      for (var rights = 0; rights < this.move.translation; rights++) {
+        this.game.moveRight();
+      }
+    }
+
+  }
+};
+
+
+Ai.prototype.getAllPossibleMoves = function () {
+
+  var lastState = this.game.saveState();
+  var possibleMoves = [];
+  var possibleMoveRatings = []; // not used
+  // var iterations = 0;
+  //for each possible rotation
+  for (var rots = 0; rots < 4; rots++) {
+
+    var oldX = [];
+    //for each iteration
+    for (var t = -5; t <= 5; t++) {
+      // iterations++;
+      this.game.loadState(lastState);
+      //rotate shape
+      for (var j = 0; j < rots; j++) {
+        this.game.rotateShape();
+      }
+
+      //move left
+      if (t < 0) {
+        for (var l = 0; l < Math.abs(t); l++) {
+          this.game.moveLeft();
+        }
+        //move right
+      } else if (t > 0) {
+        for (var r = 0; r < t; r++) {
+          this.game.moveRight();
+        }
+      }
+      //if the shape has moved at all
+      // if (!contains(oldX, currentShape.x)) {
+      //move it down
+      var moveStats = this.game.moveDown();
+      while (moveStats.moved) {
+        moveStats = this.game.moveDown();
+      }
+
+      stats = this.game.getBoardStats();
+
+      //set the 7 parameters of a genome
+      var algorithm = {
+        rowsCleared: moveStats.rows,
+        weightedHeight: Math.pow(stats.height, 1.5),
+        cumulativeHeight: stats.totalHeight,
+        relativeHeight: stats.relativeHeight,
+        holes: stats.holes,
+        roughness: stats.roughness
+      };
+
+      //rate each move
+      var rating = 0;
+      rating += algorithm.rowsCleared * this.genomes[this.index].rowsCleared;
+      rating += algorithm.weightedHeight * this.genomes[this.index].weightedHeight;
+      rating += algorithm.cumulativeHeight * this.genomes[this.index].cumulativeHeight;
+      rating += algorithm.relativeHeight * this.genomes[this.index].relativeHeight;
+      rating += algorithm.holes * this.genomes[this.index].holes;
+      rating += algorithm.roughness * this.genomes[this.index].roughness;
+      //if the move loses the game, lower its rating
+      if (moveStats.lose) {
+        rating -= 500;
+      }
+      //push all possible moves, with their associated ratings and parameter values to an array
+      possibleMoves.push({rotations: rots, translation: t, rating: rating, algorithm: algorithm});
+      //update the position of old X value
+      // oldX.push(currentShape.x);
+      // }
+    }
+  }
+  //get last state
+  this.game.loadState(lastState);
+  //return array of all possible moves
+  return possibleMoves;
+
+};
+
+
+Ai.prototype.deleteGenomes = function () {
+  this.action = "delete";
+};
+
+Ai.prototype.addGenomes = function (genomes) {
+  this.action = "add";
+  this.genomeQ.push(JSON.parse(genomes));
+  this.index = -1;
+
+};
+
+
+Ai.prototype.getHighestRatedMove = function (moves) {
+  //start these values off small
+  var maxRating = -10000000000000;
+  var maxMove = -1;
+  var ties = [];
+  //iterate through the list of moves
+  for (var index = 0; index < moves.length; index++) {
+    //if the current moves rating is higher than our maxrating
+    if (moves[index].rating > maxRating) {
+      //update our max values to include this moves values
+      maxRating = moves[index].rating;
+      maxMove = index;
+      //store index of this move
+      ties = [index];
+    } else if (moves[index].rating == maxRating) {
+      //if it ties with the max rating
+      //add the index to the ties array
+      ties.push(index);
+    }
+  }
+  //eventually we'll set the highest move value to this move var
+  var move = moves[ties[0]];
+  //and set the number of ties
+  move.algorithm.ties = ties.length;
+  return move;
+};
+
+
+Ai.prototype.getAiData = function () {
+  return this.move;
+};
+
+
+function randomNumBetween(min, max) {
+  return Math.floor(Math.random() * (max - min + 1) + min);
 }
+
+function randomWeightedNumBetween(min, max) {
+  return Math.floor(Math.pow(Math.random(), 2) * (max - min + 1) + min);
+}
+
+function randomChoice(propOne, propTwo) {
+  if (Math.round(Math.random()) === 0) {
+    return clone(propOne);
+  } else {
+    return clone(propTwo);
+  }
+}
+
+
+/**
+ * Returns an array that replaces all the holes in the grid with -1.
+ * @return {Array} The modified grid array.
+ */
+/*Ai.prototype.getHolesArray = function(game) {
+ var array = clone(grid);
+ removeShape();
+ var peaks = [20,20,20,20,20,20,20,20,20,20];
+ for (var row = 0; row < grid.length; row++) {
+ for (var col = 0; col < grid[row].length; col++) {
+ if (grid[row][col] !== 0 && peaks[col] === 20) {
+ peaks[col] = row;
+ }
+ }
+ }
+ for (var x = 0; x < peaks.length; x++) {
+ for (var y = peaks[x]; y < grid.length; y++) {
+ if (grid[y][x] === 0) {
+ array[y][x] = -1;
+ }
+ }
+ }
+ applyShape();
+ return array;
+ };*/
+
+
+/**
+ * Returns the roughness of the grid.
+ * @return {Number} The roughness of the grid.
+ */
+
+
+
 
 /**
  * Evolves the entire population and goes to the next generation.
@@ -132,15 +310,15 @@ function evolve() {
 
   console.log("Generation " + generation + " evaluated.");
   //reset current genome for new generation
-  currentGenome = 0;
+  this.index = 0;
   //increment generation
   generation++;
   //resets the game
   reset();
   //gets the current game state
-  roundState = getState();
+  testState = getState();
   //sorts genomes in decreasing order of fitness values
-  genomes.sort(function(a, b) {
+  genomes.sort(function (a, b) {
     return b.fitness - a.fitness;
   });
   //add a copy of the fittest genome to the elites list
@@ -148,7 +326,7 @@ function evolve() {
   console.log("Elite's fitness: " + genomes[0].fitness);
 
   //remove the tail end of genomes, focus on the fittest
-  while(genomes.length > populationSize / 2) {
+  while (genomes.length > populationSize / 2) {
     genomes.pop();
   }
   //sum of the fitness for each genome
@@ -161,6 +339,7 @@ function evolve() {
   function getRandomGenome() {
     return genomes[randomWeightedNumBetween(0, genomes.length - 1)];
   }
+
   //create children array
   var children = [];
   //add the fittest genome to array
@@ -193,7 +372,7 @@ function makeChild(mum, dad) {
   //init the child given two genomes (its 7 parameters + initial fitness value)
   var child = {
     //unique id
-    id : Math.random(),
+    id: Math.random(),
     //all these params are randomly selected between the mom and dad genome
     rowsCleared: randomChoice(mum.rowsCleared, dad.rowsCleared),
     weightedHeight: randomChoice(mum.weightedHeight, dad.weightedHeight),
@@ -232,246 +411,5 @@ function makeChild(mum, dad) {
  * Returns an array of all the possible moves that could occur in the current state, rated by the parameters of the current genome.
  * @return {Array} An array of all the possible moves that could occur.
  */
-function getAllPossibleMoves() {
-  var lastState = getState();
-  var possibleMoves = [];
-  var possibleMoveRatings = [];
-  var iterations = 0;
-  //for each possible rotation
-  for (var rots = 0; rots < 4; rots++) {
 
-    var oldX = [];
-    //for each iteration
-    for (var t = -5; t <= 5; t++) {
-      iterations++;
-      loadState(lastState);
-      //rotate shape
-      for (var j = 0; j < rots; j++) {
-        rotateShape();
-      }
-      //move left
-      if (t < 0) {
-        for (var l = 0; l < Math.abs(t); l++) {
-          moveLeft();
-        }
-        //move right
-      } else if (t > 0) {
-        for (var r = 0; r < t; r++) {
-          moveRight();
-        }
-      }
-      //if the shape has moved at all
-      if (!contains(oldX, currentShape.x)) {
-        //move it down
-        var moveDownResults = moveDown();
-        while (moveDownResults.moved) {
-          moveDownResults = moveDown();
-        }
-        //set the 7 parameters of a genome
-        var algorithm = {
-          rowsCleared: moveDownResults.rowsCleared,
-          weightedHeight: Math.pow(getHeight(), 1.5),
-          cumulativeHeight: getCumulativeHeight(),
-          relativeHeight: getRelativeHeight(),
-          holes: getHoles(),
-          roughness: getRoughness()
-        };
-        //rate each move
-        var rating = 0;
-        rating += algorithm.rowsCleared * genomes[currentGenome].rowsCleared;
-        rating += algorithm.weightedHeight * genomes[currentGenome].weightedHeight;
-        rating += algorithm.cumulativeHeight * genomes[currentGenome].cumulativeHeight;
-        rating += algorithm.relativeHeight * genomes[currentGenome].relativeHeight;
-        rating += algorithm.holes * genomes[currentGenome].holes;
-        rating += algorithm.roughness * genomes[currentGenome].roughness;
-        //if the move loses the game, lower its rating
-        if (moveDownResults.lose) {
-          rating -= 500;
-        }
-        //push all possible moves, with their associated ratings and parameter values to an array
-        possibleMoves.push({rotations: rots, translation: t, rating: rating, algorithm: algorithm});
-        //update the position of old X value
-        oldX.push(currentShape.x);
-      }
-    }
-  }
-  //get last state
-  loadState(lastState);
-  //return array of all possible moves
-  return possibleMoves;
-}
-
-/**
- * Returns the highest rated move in the given array of moves.
- * @param  {Array} moves An array of possible moves to choose from.
- * @return {Move}       The highest rated move from the moveset.
- */
-function getHighestRatedMove(moves) {
-  //start these values off small
-  var maxRating = -10000000000000;
-  var maxMove = -1;
-  var ties = [];
-  //iterate through the list of moves
-  for (var index = 0; index < moves.length; index++) {
-    //if the current moves rating is higher than our maxrating
-    if (moves[index].rating > maxRating) {
-      //update our max values to include this moves values
-      maxRating = moves[index].rating;
-      maxMove = index;
-      //store index of this move
-      ties = [index];
-    } else if (moves[index].rating == maxRating) {
-      //if it ties with the max rating
-      //add the index to the ties array
-      ties.push(index);
-    }
-  }
-  //eventually we'll set the highest move value to this move var
-  var move = moves[ties[0]];
-  //and set the number of ties
-  move.algorithm.ties = ties.length;
-  return move;
-}
-
-/**
- * Makes a move, which is decided upon using the parameters in the current genome.
- */
-function makeNextMove() {
-  //increment number of moves taken
-  movesTaken++;
-  //if its over the limit of moves
-  if (movesTaken > moveLimit) {
-    //update this genomes fitness value using the game score
-    genomes[currentGenome].fitness = clone(score);
-    //and evaluates the next genome
-    evaluateNextGenome();
-  } else {
-    //time to make a move
-
-    //we're going to re-draw, so lets store the old drawing
-    var oldDraw = clone(draw);
-    draw = false;
-    //get all the possible moves
-    var possibleMoves = getAllPossibleMoves();
-    //lets store the current state since we will update it
-    var lastState = getState();
-    //whats the next shape to play
-    nextShape();
-    //for each possible move
-    for (var i = 0; i < possibleMoves.length; i++) {
-      //get the best move. so were checking all the possible moves, for each possible move. moveception.
-      var nextMove = getHighestRatedMove(getAllPossibleMoves());
-      //add that rating to an array of highest rates moves
-      possibleMoves[i].rating += nextMove.rating;
-    }
-    //load current state
-    loadState(lastState);
-    //get the highest rated move ever
-    var move = getHighestRatedMove(possibleMoves);
-    //then rotate the shape as it says too
-    for (var rotations = 0; rotations < move.rotations; rotations++) {
-      rotateShape();
-    }
-    //and move left as it says
-    if (move.translation < 0) {
-      for (var lefts = 0; lefts < Math.abs(move.translation); lefts++) {
-        moveLeft();
-      }
-      //and right as it says
-    } else if (move.translation > 0) {
-      for (var rights = 0; rights < move.translation; rights++) {
-        moveRight();
-      }
-    }
-    //update our move algorithm
-    if (inspectMoveSelection) {
-      moveAlgorithm = move.algorithm;
-    }
-    //and set the old drawing to the current
-    draw = oldDraw;
-    //output the state to the screen
-    output();
-    //and update the score
-    updateScore();
-  }
-}
-
-
-/**
- * Returns the number of holes in the grid.
- * @return {Number} The number of holes.
- */
-function getHoles() {
-  removeShape();
-  var peaks = [20,20,20,20,20,20,20,20,20,20];
-  for (var row = 0; row < grid.length; row++) {
-    for (var col = 0; col < grid[row].length; col++) {
-      if (grid[row][col] !== 0 && peaks[col] === 20) {
-        peaks[col] = row;
-      }
-    }
-  }
-  var holes = 0;
-  for (var x = 0; x < peaks.length; x++) {
-    for (var y = peaks[x]; y < grid.length; y++) {
-      if (grid[y][x] === 0) {
-        holes++;
-      }
-    }
-  }
-  applyShape();
-  return holes;
-}
-
-
-/**
- * Returns an array that replaces all the holes in the grid with -1.
- * @return {Array} The modified grid array.
- */
-function getHolesArray() {
-  var array = clone(grid);
-  removeShape();
-  var peaks = [20,20,20,20,20,20,20,20,20,20];
-  for (var row = 0; row < grid.length; row++) {
-    for (var col = 0; col < grid[row].length; col++) {
-      if (grid[row][col] !== 0 && peaks[col] === 20) {
-        peaks[col] = row;
-      }
-    }
-  }
-  for (var x = 0; x < peaks.length; x++) {
-    for (var y = peaks[x]; y < grid.length; y++) {
-      if (grid[y][x] === 0) {
-        array[y][x] = -1;
-      }
-    }
-  }
-  applyShape();
-  return array;
-}
-
-
-/**
- * Returns the roughness of the grid.
- * @return {Number} The roughness of the grid.
- */
-function getRoughness() {
-  removeShape();
-  var peaks = [20,20,20,20,20,20,20,20,20,20];
-  for (var row = 0; row < grid.length; row++) {
-    for (var col = 0; col < grid[row].length; col++) {
-      if (grid[row][col] !== 0 && peaks[col] === 20) {
-        peaks[col] = row;
-      }
-    }
-  }
-  var roughness = 0;
-  var differences = [];
-  for (var i = 0; i < peaks.length - 1; i++) {
-    roughness += Math.abs(peaks[i] - peaks[i + 1]);
-    differences[i] = Math.abs(peaks[i] - peaks[i + 1]);
-  }
-  applyShape();
-  return roughness;
-}
 
