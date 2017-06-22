@@ -36,6 +36,7 @@ function Game(w, h, game, steps) {
   this.aiFlag = true;
   this.height = h;
   this.width = w;
+  this.pause = false;
   this.default = 0;
   this.steps = steps;
   this.shape = 0;
@@ -44,6 +45,7 @@ function Game(w, h, game, steps) {
   this.interval = 0;
   this.seed = 1;
   this.pressed = false;
+  this.click = true;
   this.save = 0;
   this.ai = new Ai(this, 10);
 
@@ -81,9 +83,43 @@ function Game(w, h, game, steps) {
 
 
 }
+Game.prototype.events = function () {
+
+  this.canvas = document.getElementById('input');
+  this.canvas.width = 200;
+  this.canvas.height = 400;
+
+  var context = this.canvas.getContext('2d');
+  context.strokeStyle = "#F00";
+  context.rect(0,0,this.canvas.width, this.canvas.height);
+  context.stroke();
+  board = this.board;
+
+  canvas = this.canvas;
+
+
+  canvas.addEventListener('mousemove', function(evt) {
+    var mousePos = getMousePos(canvas, evt);
+    var message = 'M: ' + mousePos.x + ' , ' + mousePos.y;
+    writeMessage(canvas, message);
+  }, false);
+
+  canvas.addEventListener('click', this.addBlock.bind(this), false);
+
+};
+
+Game.prototype.addBlock = function (e) {
+
+    var mousePos = getMousePos(this.canvas, e);
+    this.board[mousePos.y][mousePos.x] = this.click === true ? 1 : 0;
+    this.draw();
+
+
+};
 
 Game.prototype.start = function () {
   this.reset();
+  this.events();
   this.nextShape();
   this.ai.init();
   this.loop(this);
@@ -115,6 +151,8 @@ Game.prototype.reset = function () {
 
 
 Game.prototype.checkState = function () {
+  if(this.pause === true) return false;
+
   if (this.state === 1) {
     if (!this.aiFlag) this.reset();
     return false;
@@ -134,7 +172,7 @@ Game.prototype.gravity = function () {
     }
   }
   if (!result.moved) {
-    if (this.aiFlag) this.ai.makeNextMove();
+    if (this.aiFlag && this.pause === false) this.ai.makeNextMove();
   }
 };
 
@@ -238,6 +276,12 @@ Game.prototype.collision = function (x, y) {
 };
 
 Game.prototype.nextShape = function () {
+
+  if (this.pause) {
+    this.shape = 0;
+    return true;
+  }
+
   this.shape = this.createShape();
   this.shape.x = Math.floor(this.width / 2) - 1;
 
@@ -355,8 +399,8 @@ Game.prototype.clearRows = function () {
 };
 
 /**
- * Linear Congruential Generator
  * @param  {Number} min The minimum number, inclusive.
+ * Linear Congruential Generator
  * @param  {Number} max The maximum number, exclusive.
  * @return {Number}     The generated random number.
  */
@@ -389,7 +433,6 @@ Game.prototype.getState = function () {
  * Save State
  */
 Game.prototype.saveState = function () {
-
   this.removeShape();
   var save = this.getState();
   this.addShape();
@@ -401,9 +444,8 @@ Game.prototype.saveState = function () {
  * @param state
  */
 Game.prototype.loadState = function (state) {
-
   this.board = clone(state.board);
-  this.shape = new Shape(state.shape);
+  this.shape =  state.shape === 0 ? 0 : new Shape(state.shape);
   this.score = state.score;
   this.seed = state.seed;
   this.addShape();
@@ -418,7 +460,6 @@ Game.prototype.loadState = function (state) {
 
 
 Game.prototype.getBoardStats = function () {
-
   this.removeShape();
   var grid = this.board;
   var stats = {};
@@ -474,7 +515,7 @@ Game.prototype.getBoardStats = function () {
   return stats;
 };
 
-Game.prototype.draw = function () {
+Game.prototype.drawBoard = function () {
 
   var html = "";
 
@@ -487,6 +528,13 @@ Game.prototype.draw = function () {
   }
   this.dom.innerHTML = html;
 
+
+};
+
+Game.prototype.draw = function () {
+
+  this.drawBoard();
+
   if (this.state) {
     this.domStatus.innerHTML = "Lost";
   } else {
@@ -496,13 +544,15 @@ Game.prototype.draw = function () {
   // Get upcoming shapes
   var shapes = this.predictShapes(7);
 
-  html = "<div style='float:left;width:550px;'><table>\
+  var html = "<div style='float:left;width:550px;'><table>\
   <tr><td>Name</td><td>Value</td></tr>\
   <tr><td>Score</td><td>" + this.score + "</td></tr>\
   <tr><td>Current Genome</td><td>" + (this.ai.index + 1 ) + "/" + this.ai.genomes.length + "</td></tr>\
   <tr><td>AI</td><td>" + this.aiFlag + "</td></tr>\
+  <tr><td>Pause</td><td>" + this.pause + "</td></tr>\
   <tr><td>Status</td><td>" + this.state + "</td></tr>\
   <tr><td>Steps</td><td>" + this.steps + "</td></tr>\
+  <tr><td>Click</td><td>" + this.click + "</td></tr>\
   <tr><td>Shape</td><td>" + JSON.stringify(this.shape) + "</td></tr>\
   <tr><td>Line UP</td><td>" + JSON.stringify(shapes) + "</td></tr>\
   </table>";
@@ -518,6 +568,9 @@ Game.prototype.draw = function () {
   for (var stat in stats) {
     statsHtml += stat + " : " + stats[stat] + " <br> ";
   }
+
+
+
 
   aiHtml = "";
   for (var aiinfo in aidata) {
@@ -542,6 +595,9 @@ Game.prototype.draw = function () {
   html += debug + "<div>" + statsHtml + "</div> </div><div style='float:right;'>" + genomeHtml + "</div> <div style=\"width:300px;\">" + aiHtml + " </div>";
   this.domAi.innerHTML = html;
 
+  this.drawInput();
+
+
 //   debug = "";
 //   for(var shape in this.shapes) {
 //     for (var y = 0; y < this.shapes[shape].length; y++) {
@@ -558,7 +614,7 @@ Game.prototype.draw = function () {
 
 Game.prototype.boardDebug = function () {
 
-  debug = "<table  class=\"monospace\"><tr><td><div>";
+  debug = "<table class=\"monospace\"><tr><td><div>";
 
   for (var y = 0; y < this.height; y++) {
     for (var x = 0; x < this.width; x++) {
@@ -612,6 +668,27 @@ Game.prototype.loop = function (t) {
 
 };
 
+Game.prototype.drawInput = function () {
+
+  var canvas = document.getElementById('input');
+  var context = canvas.getContext('2d');
+  var ratio = 20;
+
+
+  for (var y = 0; y < this.height; y++) {
+    var yy = y * ratio;
+    for (var x = 0; x < this.width; x++) {
+      var xx = x * ratio;
+      context.fillStyle = "#" + this.colors[this.board[y][x]];
+      context.fillRect(xx, yy, ratio, ratio);
+
+    }
+  }
+
+
+
+
+};
 
 /**
  * Shape Class
@@ -673,6 +750,10 @@ window.onkeydown = function (event) {
     game.steps /= 1.5;
   } else if (characterPressed.toUpperCase() === "C") {
     game.aiFlag = !game.aiFlag;
+  } else if (characterPressed.toUpperCase() === "G") {
+    game.pause = !game.pause;
+  } else if (characterPressed.toUpperCase() === "R") {
+    game.click = !game.click;
   } else if (characterPressed.toUpperCase() === "F") {
 
     if (game.pressed) return;
@@ -702,3 +783,20 @@ window.onkeydown = function (event) {
 
   return false;
 };
+
+
+function writeMessage(canvas, message) {
+  var context = canvas.getContext('2d');
+  context.clearRect(5, 5, 200, 25);
+  context.font = '11pt Calibri';
+  context.fillStyle = 'black';
+  context.fillText(message, 10, 25);
+}
+function getMousePos(canvas, evt) {
+  var ratio = 20;
+  var rect = canvas.getBoundingClientRect();
+  return {
+    x: Math.floor((evt.clientX - rect.left) / ratio),
+    y: Math.floor((evt.clientY - rect.top) / ratio)
+  };
+}
