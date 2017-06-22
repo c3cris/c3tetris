@@ -469,9 +469,7 @@ Game.prototype.getBoardStats = function () {
   for (var row = 0; row < grid.length; row++) {
     for (var col = 0; col < grid[row].length; col++) {
 
-      if (stats.peaks[col] !== 20) break;
-
-      if (grid[row][col] !== 0) {
+      if (grid[row][col] !== 0 && stats.peaks[col] === 20) {
         stats.peaks[col] = row;
       }
     }
