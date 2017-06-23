@@ -16,7 +16,7 @@
       color: #cbcbcb;
       font-family: Inconsolata, Courier, monospace;
       font-weight: bold;
-      font-size: 40px;
+      font-size: 34px;
       line-height: .6em;
     }
     .monospace {
@@ -24,21 +24,28 @@
       line-height: .8em;
       display:block
     }
+    .floatleft {
+      float:left;
+    }
+    .floatright {
+      float:right;
+    }
 
   </style>
 </head>
 <body>
-  <h1>c3cris Tetris</h1><h5>Tetris AI | [Z] Slow down [X] Speed Up [C] AI [F] Save [V] Load [G] No More Blocks</h5>
-  <h5 id="status"> </h5>
-  <div id="game"> </div>
+  <h1>c3cris Tetris</h1><h5>Tetris AI | [Z] Slow down [X] Speed Up [C] AI
+    [F] Save [V] Load [G] No More Blocks [R] Click alternate [Q] Next Move </h5>
+  <!--<div id="game"> </div>-->
   <canvas id="input" style="float:left;margin:0 10px;"> </canvas>
   <div id="stats">
-    <div id="gene">
+    <div id="gene" class="floatleft">
       <textarea id="geneInput" rows="6" cols="50"></textarea>
       <button id="add" type="button">Add</button>
       <button id="delete" type="button">Delete</button>
+      <div id="ai"></div>
     </div>
-    <div id="ai"></div>
+    <div id="genomes" class="floatright"></div>
   </div>
 </body>
 <script src="ai.js" type="text/javascript" charset="utf-8" async defer></script>

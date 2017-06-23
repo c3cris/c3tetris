@@ -3,11 +3,9 @@
  Todo - add call to bot ( abstract )
  Todo - Add evolve
  Todo - Add charting
- Todo - Create manual entry
- Todo - Add new inputs
- Todo - Create custom board inputs for testing algo
- Todo - refactor drawing for speed up
- Todo - refactor UI
+ Todo - Edit Ai live
+ Todo - Refactor UI
+ Todo - Fix Make Next Move Algorithm
 
  **/
 
@@ -29,9 +27,8 @@ var game = new Game(10, 20, "game", 500);
  */
 function Game(w, h, game, steps) {
   this.dom = document.getElementById(game);
-  this.domStatus = document.getElementById("status");
   this.domAi = document.getElementById("ai");
-  this.domInput = document.getElementById("gene");
+  this.domGenes = document.getElementById("genomes");
   this.board = [];
   this.aiFlag = true;
   this.height = h;
@@ -192,6 +189,12 @@ Game.prototype.moveDown = function () {
     //get rows eliminated
     result.rows = this.clearRows();
 
+    if (this.pause) {
+
+      this.shape = 0;
+      return result;
+    }
+
     if (this.nextShape() === false) {
       result.lose = true;
     }
@@ -277,10 +280,6 @@ Game.prototype.collision = function (x, y) {
 
 Game.prototype.nextShape = function () {
 
-  if (this.pause) {
-    this.shape = 0;
-    return true;
-  }
 
   this.shape = this.createShape();
   this.shape.x = Math.floor(this.width / 2) - 1;
@@ -445,9 +444,9 @@ Game.prototype.saveState = function () {
  */
 Game.prototype.loadState = function (state) {
   this.board = clone(state.board);
-  this.shape =  state.shape === 0 ? 0 : new Shape(state.shape);
+  this.shape = state.shape === 0 ? 0 : new Shape(state.shape);
   this.score = state.score;
-  this.seed = state.seed;
+  this.seed  = state.seed;
   this.addShape();
   // this.draw();
 };
@@ -460,6 +459,7 @@ Game.prototype.loadState = function (state) {
 
 
 Game.prototype.getBoardStats = function () {
+
   this.removeShape();
   var grid = this.board;
   var stats = {};
@@ -531,13 +531,7 @@ Game.prototype.drawBoard = function () {
 
 Game.prototype.draw = function () {
 
-  this.drawBoard();
-
-  if (this.state) {
-    this.domStatus.innerHTML = "Lost";
-  } else {
-    this.domStatus.innerHTML = "Running";
-  }
+  // this.drawBoard();
 
   // Get upcoming shapes
   var shapes = this.predictShapes(7);
@@ -547,11 +541,12 @@ Game.prototype.draw = function () {
   <tr><td>Score</td><td>" + this.score + "</td></tr>\
   <tr><td>Current Genome</td><td>" + (this.ai.index + 1 ) + "/" + this.ai.genomes.length + "</td></tr>\
   <tr><td>AI</td><td>" + this.aiFlag + "</td></tr>\
+  <tr><td>AI Move</td><td>" + this.ai.movesTaken + "</td></tr>\
   <tr><td>Pause</td><td>" + this.pause + "</td></tr>\
   <tr><td>Status</td><td>" + this.state + "</td></tr>\
   <tr><td>Steps</td><td>" + this.steps + "</td></tr>\
   <tr><td>Click</td><td>" + this.click + "</td></tr>\
-  <tr><td>Shape</td><td>" + JSON.stringify(this.shape) + "</td></tr>\
+  <tr><td>Shape</td><td style='font-size:13px;'>" + JSON.stringify(this.shape) + "</td></tr>\
   <tr><td>Line UP</td><td>" + JSON.stringify(shapes) + "</td></tr>\
   </table>";
 
@@ -582,6 +577,7 @@ Game.prototype.draw = function () {
     }
     aiHtml += aiinfo + " : " + aidata[aiinfo] + " <br> ";
   }
+
   genomeHtml = "";
   for (var gene in this.ai.genomes[this.ai.index]) {
     genomeHtml += gene + " : " + this.ai.genomes[this.ai.index][gene] + " <br> ";
@@ -590,9 +586,12 @@ Game.prototype.draw = function () {
 
   genomeHtml += "<pre>" + JSON.stringify(this.ai.genomes, false, 2) + "</pre>";
 
-  html += debug + "<div>" + statsHtml + "</div> </div><div style='float:right;'>" + genomeHtml + "</div> <div style=\"width:300px;\">" + aiHtml + " </div>";
-  this.domAi.innerHTML = html;
+ // html += debug + "<div>" + statsHtml + "</div> </div>" +
+  //  "<div style='float:right;'>" + aiHtml + genomeHtml + "</div> ";
+    // "<div style=\"width:300px;\">" + aiHtml + " </div>";
+  this.domAi.innerHTML = html + debug + statsHtml;
 
+  this.domGenes.innerHTML = aiHtml  + "<hr>" + genomeHtml;
   this.drawInput();
 
 
@@ -622,13 +621,13 @@ Game.prototype.boardDebug = function () {
   }
   debug += "</div></td>";
 
-  if (this.ai.testState !== 0) {
+  if (this.save !== 0) {
 
     debug += "<td><div>";
 
     for (var y = 0; y < this.height; y++) {
       for (var x = 0; x < this.width; x++) {
-        debug += "<span style=\"color:#" + this.colors[this.ai.testState.board[y][x]] + "\">" + this.ai.testState.board[y][x] + "</span>";
+        debug += "<span style=\"color:#" + this.colors[this.save.board[y][x]] + "\">" + this.save.board[y][x] + "</span>";
       }
       debug += "<br>";
     }
@@ -646,7 +645,7 @@ Game.prototype.boardDebug = function () {
 Game.prototype.step = function () {
 
   if (!this.checkState()) return false;
-  if (!this.shape) return this.nextShape();
+  if (!this.shape && !this.pause) return this.nextShape();
 
   this.gravity();
 
@@ -748,6 +747,8 @@ window.onkeydown = function (event) {
     game.steps /= 1.5;
   } else if (characterPressed.toUpperCase() === "C") {
     game.aiFlag = !game.aiFlag;
+  } else if (characterPressed.toUpperCase() === "Q") {
+    game.ai.makeNextMove();
   } else if (characterPressed.toUpperCase() === "G") {
     game.pause = !game.pause;
   } else if (characterPressed.toUpperCase() === "R") {
@@ -756,7 +757,7 @@ window.onkeydown = function (event) {
 
     if (game.pressed) return;
     game.pressed = true;
-    game.saveState();
+    game.save = game.saveState();
     setTimeout(function () {
       game.pressed = false;
       console.log("pressed false");

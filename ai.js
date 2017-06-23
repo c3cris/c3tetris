@@ -5,7 +5,7 @@ function Ai(game, population) {
   this.index = -1;
   this.movesTaken = 0;
   this.testState = 0;
-  this.moveLimit = 200;
+  this.moveLimit = 1000;
   this.genomeQ = [];
   this.action = false;
 }
@@ -93,7 +93,7 @@ Ai.prototype.makeNextMove = function () {
 
   } else {
     //time to make a move
-
+    var lastState = this.game.saveState();
     //get all the possible moves
     var possibleMoves = this.getAllPossibleMoves();
     //lets store the current state since we will update it
@@ -110,7 +110,7 @@ Ai.prototype.makeNextMove = function () {
       //add that rating to an array of highest rates moves
       possibleMoves[i].rating += nextMove.rating;
     }
-
+    this.game.loadState(lastState);
     //load current state
     // this.game.loadState(lastState);
 
@@ -131,6 +131,7 @@ Ai.prototype.makeNextMove = function () {
         this.game.moveRight();
       }
     }
+
 
   }
 };
