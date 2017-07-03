@@ -539,6 +539,7 @@ Game.prototype.draw = function () {
   var html = "<div style='float:left;width:550px;'><table>\
   <tr><td>Name</td><td>Value</td></tr>\
   <tr><td>Score</td><td>" + this.score + "</td></tr>\
+  <tr><td>Seed</td><td>" + this.seed + "</td></tr>\
   <tr><td>Current Genome</td><td>" + (this.ai.index + 1 ) + "/" + this.ai.genomes.length + "</td></tr>\
   <tr><td>AI</td><td>" + this.aiFlag + "</td></tr>\
   <tr><td>AI Move</td><td>" + this.ai.movesTaken + "</td></tr>\
@@ -646,7 +647,7 @@ Game.prototype.step = function () {
 
   if (!this.checkState()) return false;
   if (!this.shape && !this.pause) return this.nextShape();
-
+  if (this.ai.action !== false) this.ai.solveAction();
   this.gravity();
 
 

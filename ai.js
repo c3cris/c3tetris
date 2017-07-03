@@ -76,7 +76,6 @@ Ai.prototype.nextGenome = function () {
 Ai.prototype.makeNextMove = function () {
 
 
-  if (this.action !== false) return this.solveAction();
 
   if (this.genomes.length === 0) return;
 
