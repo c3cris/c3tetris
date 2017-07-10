@@ -7,6 +7,17 @@
  Todo - Refactor UI
  Todo - Fix Make Next Move Algorithm
 
+ {
+    "id": 77,
+    "rowsCleared": 25,
+    "weightedHeight": -0.3,
+    "cumulativeHeight": 0.33,
+    "relativeHeight": -0.50,
+    "holes": -12.9,
+    "roughness": -1.7
+  }
+
+
  **/
 
 
